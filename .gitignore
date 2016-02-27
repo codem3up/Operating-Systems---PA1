@@ -1,1 +1,2 @@
 git update-index --assume-unchanged ./idea
+git update-index --assume-unchanged .gitignore

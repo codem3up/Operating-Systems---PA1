@@ -1,23 +1,22 @@
 #include <stdio.h>
 #include <assert.h>
 #include <stdlib.h>
+#include <unistd.h>
 
 #include "mem_pool.h"
 
 /* forward declarations */
 void print_pool(pool_pt pool);
-
 /* main */
 int main(int argc, char *argv[]) {
 
-//    const unsigned POOL_SIZE = 1000000;
-//    pool_pt pool = NULL;
-//
-//    alloc_status status = mem_init();
-//    assert(status == ALLOC_OK);
-//    pool = mem_pool_open(POOL_SIZE, FIRST_FIT);
-//    assert(pool);
-//
+    const unsigned POOL_SIZE = 1000000;
+    pool_pt pool = NULL;
+    alloc_status status = mem_init();
+    assert(status == ALLOC_OK);
+    pool = mem_pool_open(POOL_SIZE, FIRST_FIT);
+    assert(pool);
+
 //    /*
 //     * Basic allocation scenario:
 //     *
@@ -27,12 +26,12 @@ int main(int argc, char *argv[]) {
 //     * 4. Deallocate the 100 allocation. Now gaps on both sides of 1000.
 //     * 4. Deallocate the 1000 allocation. Pool is again one single gap.
 //     */
-//
-//
-//    print_pool(pool);
+
+   // print_pool(pool);
 //
 //    // + alloc-0
-//    alloc_pt alloc0 = mem_new_alloc(pool, 100);
+    alloc_pt alloc0 = mem_new_alloc(pool, 100);
+  //  alloc_pt alloc1 = mem_new_alloc(pool, 200);
 //    assert(alloc0);
 //
 //    print_pool(pool);
@@ -68,8 +67,7 @@ int main(int argc, char *argv[]) {
 //    printf("status = %d\n", status);
 //    assert(status == ALLOC_OK);
 
-    alloc_status status = mem_init();
-    printf("%d", status);
+    //alloc_status status = mem_init();
 
     return 0;
 }

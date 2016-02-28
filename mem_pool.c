@@ -4,6 +4,7 @@
 
 #include <stdlib.h>
 #include <assert.h>
+#include <unistd.h>
 #include <stdio.h> // for perror()
 
 #include "mem_pool.h"
@@ -13,6 +14,7 @@
 /* Constants */
 /*           */
 /*************/
+
 static const float      MEM_FILL_FACTOR                 = 0.75;
 static const unsigned   MEM_EXPAND_FACTOR               = 2;
 
@@ -57,7 +59,6 @@ typedef struct _pool_mgr {
 } pool_mgr_t, *pool_mgr_pt;
 
 
-
 /***************************/
 /*                         */
 /* Static global variables */
@@ -66,6 +67,7 @@ typedef struct _pool_mgr {
 static pool_mgr_pt *pool_store = NULL; // an array of pointers, only expand
 static unsigned pool_store_size = 0;
 static unsigned pool_store_capacity = 0;
+unsigned pool_size = 0;
 
 
 
@@ -88,19 +90,64 @@ static alloc_status
 static alloc_status _mem_sort_gap_ix(pool_mgr_pt pool_mgr);
 
 
+/********************************************/
+/*                                          */
+/* Variables */
+/*                                          */
+/********************************************/
+
+int init = 0;
+unsigned pool_store_num = 0;
 
 /****************************************/
 /*                                      */
 /* Definitions of user-facing functions */
 /*                                      */
 /****************************************/
+
+void * createPool(size_t size){
+    void *p;
+    p = sbrk(0);
+    if(sbrk(size) == (void*)-1)
+        return NULL;
+    return p;
+}
+
+void * getNewAddress(char * address, size_t difference){
+    char * new = address + 100;
+    return new;
+}
+
+//Testing Purposes Only
+void printNode(char name[], node_t node){
+    printf("\n\n%s: { \n  Address: %p\n", name, &node);
+    printf("  Alloc Record: { \n    Size: %lu\n    Address: %p\n  }\n", node.alloc_record.size, node.alloc_record.mem);
+    printf("Allocated: %d\n", node.allocated);
+    printf("Used: %d\n", node.used);
+    printf("Next Address: %p\n", node.next);
+    printf("Previous Address: %p", node.prev);
+}
+
+void printNodes(pool_mgr_pt mgr_pt){
+    pool_mgr_t mgr = *mgr_pt;
+    node_t node = *mgr.node_heap;
+
+    printNode("Node", node);
+}
+
+
 alloc_status mem_init() {
     // ensure that it's called only once until mem_free
     // allocate the pool store with initial capacity
     // note: holds pointers only, other functions to allocate/deallocate
-    printf("TEST!");
-
-    return ALLOC_FAIL;
+    if(!init) {
+        init = 1;
+        pool_mgr_pt *pool_store[pool_store_size];
+        return ALLOC_OK;
+    }
+    else {
+        return ALLOC_FAIL;
+    }
 }
 
 alloc_status mem_free() {
@@ -108,7 +155,11 @@ alloc_status mem_free() {
     // make sure all pool managers have been deallocated
     // can free the pool store array
     // update static variables
-
+    if(init){
+        init = 0;
+        free(pool_store);
+        return ALLOC_OK;
+    }
     return ALLOC_FAIL;
 }
 
@@ -129,6 +180,38 @@ pool_pt mem_pool_open(size_t size, alloc_policy policy) {
     //   initialize pool mgr
     //   link pool mgr to pool store
     // return the address of the mgr, cast to (pool_pt)
+    if(init){
+        char *mem = createPool(size);
+        if(mem != NULL){
+            pool_mgr_t mgr = {};
+            pool_t pool = { mem, policy, size, 0, 0, 0 };
+            alloc_t record = { size, mem };
+            node_t headNode = { record, 0, 0, NULL, NULL};
+            gap_t gap = { size, &headNode };
+
+            mgr.pool = pool;
+            mgr.node_heap = &headNode;
+            mgr.total_nodes = 1;
+            mgr.used_nodes = 0;
+            mgr.gap_ix_capacity = size;
+            mgr.gap_ix = &gap;
+
+
+            if(pool_store_num >= pool_store_size){
+                pool_store_num++;
+                pool_store_size = pool_store_num;
+            }
+
+            printf("\nPool Manager Information:\n");
+            printf("Pool Manager Pointer: %p\n", &mgr);
+            printf("Pool Manager Node Pointer: %p\n", mgr.node_heap);
+            printf("Node Used: %d\n", mgr.node_heap->used);
+            printf("Pool Manager Number Nodes: %d\n", mgr.total_nodes);
+
+            pool_pt p = &mgr.pool;
+            return p;
+        }
+    }
 
     return NULL;
 }
@@ -171,7 +254,52 @@ alloc_pt mem_new_alloc(pool_pt pool, size_t size) {
     //   add to gap index
     //   check if successful
     // return allocation record by casting the node to (alloc_pt)
+    pool_mgr_pt mgr_pt = (pool_mgr_pt) pool;
+    printNodes(mgr_pt);
+    pool_mgr_t mgr = *mgr_pt;
 
+    node_t current = *mgr.node_heap;
+    int finished = 0;
+
+    if(mgr_pt->pool.policy == FIRST_FIT){
+        do {
+            if (!current.used) {
+                if (current.alloc_record.size > size) {
+                    node_t new;
+                    char *new_node_address = getNewAddress(current.alloc_record.mem, size);
+                    alloc_t new_alloc = { current.alloc_record.size - size, new_node_address};
+                    current.alloc_record.size = size;
+                    current.used = 1;
+                    current.allocated = 1;
+
+
+                    new.used = 0;
+                    new.allocated = 0;
+                    new.alloc_record = new_alloc;
+                    new.prev = &current;
+                    new.next = NULL;
+
+                    current.next = &new;
+
+                    mgr.total_nodes++;
+                    mgr.gap_ix_capacity = mgr.gap_ix_capacity - size;
+                    //TODO CONFIGURE GAP HERE
+                    finished = 1;
+               }
+            }
+            else{
+                printf("ELSE CALLED");
+                current = *current.next;
+            }
+        } while(current.next != NULL && !finished);
+    }
+    else{
+        if(!current.used){
+
+        }
+    }
+
+    printNodes(mgr_pt);
     return NULL;
 }
 

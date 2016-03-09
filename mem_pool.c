@@ -352,17 +352,27 @@ alloc_status mem_del_alloc(pool_pt pool, alloc_pt alloc) {
     pool_mgr_pt pool_mgr = (pool_mgr_pt) pool;
     // get node from alloc by casting the pointer to (node_pt)
     node_pt node = (node_pt) alloc;
-    printNode("Mem Del Alloc", *node);
     // find the node in the node heap
     // this is node-to-delete
     // make sure it's found
+    if(node == NULL){
+        return ALLOC_FAIL;
+    }
     // convert to gap node
     // update metadata (num_allocs, alloc_size)
+    pool_mgr->pool.num_allocs--;
+    pool_mgr->pool.alloc_size = pool_mgr->pool.alloc_size - node->alloc_record.size;
     // if the next node in the list is also a gap, merge into node-to-delete
-    //   remove the next node from gap index
+    node_pt next = node->next;
+    if(next->used == 0) {
+        //   add the size to the node-to-delete
+        node->alloc_record.size += next->alloc_record.size;
+        //   remove the next node from gap index
+
+    }
+        //   update node as unused
+        node->used = 0;
     //   check success
-    //   add the size to the node-to-delete
-    //   update node as unused
     //   update metadata (used nodes)
     //   update linked list:
     /*

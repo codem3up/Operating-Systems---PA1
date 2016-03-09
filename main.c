@@ -45,7 +45,7 @@ int main(int argc, char *argv[]) {
 //    print_pool(pool);
 //
 //    // - alloc-0
-//    status = mem_del_alloc(pool, alloc0);
+   status = mem_del_alloc(pool, alloc0);
 //    assert(status == ALLOC_OK);
 //
 //    print_pool(pool);
